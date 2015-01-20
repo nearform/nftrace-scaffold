@@ -1,59 +1,69 @@
 var fs = require('fs');
+var path = require('path');
 
-function NftraceGen(provider) {
-  if (provider === 'undefined') {
-    this.provider = "nearform";
-  } else {
-    this.provider = provider;
+function NftraceGen(providerName, outputLoc) {
+  var provider = "nearform"
+  var outputLocation = path.normalize(path.dirname(process.argv[1]) + "/.");
+  var probes = [];
+  var args = {};
+  var fields = {};
+  
+  if (!providerName === 'undefined') {
+    provider = provider;
   }
-  this.probes = [];
-  this.args = {};
-  this.fields = {};
+  if (!outputLoc === 'undefined') {
+    outputLocation = path.normalize(path.dirname(process.argv[1]) + outputLoc);
+  }
 
   this.setProvider = function (name) {
-    this.provider = name;
+    provider = name;
   };
 
-  this.createProbe = function (probeName, args, fields) {
-    this.probes.push(probeName);
-    this.args[probeName] = args;
-    this.fields[probeName] = fields;
+  this.setOutputLocation = function (name) {
+    path.normalize(path.dirname(process.argv[1]) + name);
+    outputLocation = name;
   };
 
-  this.generateOutputDir = function () {
-    fs.mkdirSync("./nftrace-output");
-    fs.mkdirSync("./nftrace-output/src");
-    fs.mkdirSync("./nftrace-output/lib");
+
+  this.createProbe = function (probeName, arg, field) {
+    probes.push(probeName);
+    args[probeName] = arg;
+    fields[probeName] = field;
   };
 
-  this.generateTpHeader = function (headerTracepoints) {
-    var path = "./nftrace/templates/generated-tp-template.h";
+  var generateOutputDir = function () {
+    fs.mkdirSync(outputLocation + "/nftrace-output");
+    fs.mkdirSync(outputLocation + "/nftrace-output/src");
+    fs.mkdirSync(outputLocation + "/nftrace-output/lib");
+  };
+
+  var generateTpHeader = function (headerTracepoints) {
+    var path = __dirname + "/templates/generated-tp-template.h";
     var contents = fs.readFileSync(path, 'utf8');
-    contents = contents.replace("<PROVIDER>", this.provider);
-    var re = "\"" + this.provider + "-tp.h\"";
-    contents = contents.replace("<GENERATED-TP.H>", re);
-    contents = contents.replace("<PROVIDER_TP_H>", this.provider.toUpperCase() +"_TP_H");
-    contents = contents.replace("<PROVIDER_TP_H>", this.provider.toUpperCase() +"_TP_H");
+    contents = contents.replace("<PROVIDER>", provider);
+    contents = contents.replace("<GENERATED-TP.H>", "\"" + provider + "-tp.h\"");
+    contents = contents.replace("<PROVIDER_TP_H>", provider.toUpperCase() +"_TP_H");
+    contents = contents.replace("<PROVIDER_TP_H>", provider.toUpperCase() +"_TP_H");
     var tracepoints = "";
     headerTracepoints.forEach(function (tracepoint) {
       tracepoints += tracepoint;
     });
     contents = contents.replace("<TRACEPOINT_EVENTS>", tracepoints);
-    fs.writeFileSync("./nftrace-output/src/" + this.provider + "-tp.h", contents);
+    fs.writeFileSync(outputLocation + "/nftrace-output/src/" + provider + "-tp.h", contents);
 
 
-    path = "./nftrace/templates/generated-tp-template.cc";
+    path = __dirname + "/templates/generated-tp-template.cc";
 
     contents = fs.readFileSync(path, 'utf8');
-    contents = contents.replace("<PROVIDER>", this.provider);
-    fs.writeFileSync("./nftrace-output/src/" + this.provider + "-tp.cc", contents);
+    contents = contents.replace("<PROVIDER>", provider);
+    fs.writeFileSync(outputLocation + "/nftrace-output/src/" + provider + "-tp.cc", contents);
     console.log("Tracepoints generated.");
   };
 
-  this.generateTpNativeCaller = function (nanTracepoints) {
-    var path = "./nftrace/templates/nftracepoints-template.cc";
+  var generateTpNativeCaller = function (nanTracepoints) {
+    var path = __dirname + "/templates/nftracepoints-template.cc";
     var contents = fs.readFileSync(path, 'utf8');
-    var re = "\"" + this.provider + "-tp.h\"";
+    var re = "\"" + provider + "-tp.h\"";
     contents = contents.replace("<GENERATED-TP.H>", re);
     var tracepoints = "";
     nanTracepoints.forEach(function (tracepoint) {
@@ -61,20 +71,19 @@ function NftraceGen(provider) {
     });
     contents = contents.replace("<NAN_METHODS>", tracepoints);
     var exports = "";
-    this.probes.forEach(function (probeName) {
+    probes.forEach(function (probeName) {
       exports += "exports->Set(NanNew(\"fire" + probeName + "\"), NanNew<FunctionTemplate>(Fire" + probeName + ")->GetFunction());\n";
     });
     contents = contents.replace("<INIT_EXPORTS>", exports);
-    fs.writeFileSync("./nftrace-output/src/nftracepoints.cc", contents);
+    fs.writeFileSync(outputLocation + "/nftrace-output/src/nftracepoints.cc", contents);
     console.log("native link to tracepoints generated.");
   };
 
-  this.generateTpJSControllers = function () {
-    var path = "./nftrace/templates/nfprobeController-template.js";
+  var generateTpJSControllers = function () {
+    var path = __dirname + "/templates/nfprobeController-template.js";
     var contents = fs.readFileSync(path, 'utf8');
     var fireMethodLogic = "switch (probeName){";
-    var args = this.args;
-    this.probes.forEach(function (probeName) {
+    probes.forEach(function (probeName) {
       fireMethodLogic += "\n\t\tcase (\"" + probeName + "\"):\n\t\t\t";
       var fireProbeCall = "probeController.fire" + probeName + "(";
       args[probeName].forEach(function (arg, index) {
@@ -87,28 +96,29 @@ function NftraceGen(provider) {
     });
     fireMethodLogic += "\n\t\tdefault:\n\t\t\tbreak;\n\t}";
     contents = contents.replace("<FIRE_LOGIC>", fireMethodLogic);
-    fs.writeFileSync("./nftrace-output/lib/nfprobeController.js", contents);
+    fs.writeFileSync(outputLocation + "/nftrace-output/lib/nfprobeController.js", contents);
     //javascript created.
   };
 
-  this.generateAdditionalFiles = function () {
-    var path = "./nftrace/templates/package.json";
+  var generateAdditionalFiles = function () {
+    var path = __dirname + "/templates/package.json";
     var contents = fs.readFileSync(path, 'utf8');
-    fs.writeFileSync("./nftrace-output/package.json", contents);
-    path = "./nftrace/templates/generated-binding.gyp";
+    fs.writeFileSync(outputLocation + "/nftrace-output/package.json", contents);
+    
+    path = __dirname + "/templates/generated-binding.gyp";
     contents = fs.readFileSync(path, 'utf8');
-    contents = contents.replace("<PROVIDER>", this.provider);
-    fs.writeFileSync("./nftrace-output/binding.gyp", contents);
+    contents = contents.replace("<PROVIDER>", provider);
+    fs.writeFileSync(outputLocation + "/nftrace-output/binding.gyp", contents);
     console.log("Scaffolding is finished... now to try to build!");
   };
 
-  this.compileGeneratedFiles = function () {
+  var compileGeneratedFiles = function () {
     var exec = require('child_process').exec;
     
-    exec('cd ./nftrace-output && npm install && cd ..', function (error, stdout, stderr) {
+    exec('cd ' + outputLocation + '/nftrace-output && npm install && cd ..' , function (error, stdout, stderr) {
       console.log(stdout);
       console.error(stderr);
-      console.log("\n\n\nfinished!");
+      console.log("finished!");
     });
   };
 
@@ -120,10 +130,8 @@ function NftraceGen(provider) {
   this.finaliseProbes = function () {
     var headerTracepoints = [];
     var nanTracepoints = [];
-    var args = this.args;
-    var fields = this.fields;
-    var provider = this.provider;
-    this.probes.forEach(function (probeName) {
+
+    probes.forEach(function (probeName) {
       var headerTracepoint = "TRACEPOINT_EVENT(\n\t" + provider + ", " + probeName + ",\n\tTP_ARGS(\n\t\t";
       var nanTracepoint = "NAN_METHOD(Fire" + probeName + "){\n\tNanScope();\n\n\t";
       var nanCallTracepointSignature  = "tracepoint(" + provider + "," + probeName + ",";
@@ -179,13 +187,13 @@ function NftraceGen(provider) {
 
     build = true;
     if(build){
-      this.generateOutputDir();
-      this.generateTpHeader(headerTracepoints);
-      this.generateTpNativeCaller(nanTracepoints);
-      this.generateTpJSControllers();
-      this.generateAdditionalFiles();
+      generateOutputDir();
+      generateTpHeader(headerTracepoints);
+      generateTpNativeCaller(nanTracepoints);
+      generateTpJSControllers();
+      generateAdditionalFiles();
 
-      this.compileGeneratedFiles();
+      compileGeneratedFiles();
     }
   };
 };

@@ -1,6 +1,9 @@
 {
-  "name": "nftrace",
+  "name": "nftrace-scaffold",
   "version": "1.0.0",
   "description": "Scaffold for lttng tracing.",
-  "main": "./index.js"
+  "main": "./index.js",
+  "private": "true",
+  "licence": "MIT",
+  "bin": "./index.js"
 }
