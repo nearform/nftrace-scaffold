@@ -1,0 +1,9 @@
+{
+  "name": "nftraceOutput",
+  "version": "1.0.0",
+  "description": "AUTO GENERATED PACKAGE USED TO FIRE LTTNG PROBES",
+  "main": "./lib/nfprobeController.js",
+  "dependencies": {
+    "nan": "^1.4.3"
+  }
+}
