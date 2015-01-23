@@ -4,6 +4,6 @@
   "description": "AUTO GENERATED PACKAGE USED TO FIRE LTTNG PROBES",
   "main": "./lib/nfprobeController.js",
   "dependencies": {
-    "nan": "^1.4.3"
+    "nan": "1.5.0"
   }
 }

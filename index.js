@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 
 function NftraceGen(providerName, outputLoc) {
+  var exec = require('child_process').exec;
   var provider = "nearform"
   var outputLocation = path.normalize(path.dirname(process.argv[1]) + "/.");
   var probes = [];
@@ -113,8 +114,6 @@ function NftraceGen(providerName, outputLoc) {
   };
 
   var compileGeneratedFiles = function () {
-    var exec = require('child_process').exec;
-    
     exec('cd ' + outputLocation + '/nftrace-output && npm install && cd ..' , function (error, stdout, stderr) {
       console.log(stdout);
       console.error(stderr);
@@ -128,6 +127,8 @@ function NftraceGen(providerName, outputLoc) {
   //.h is the tracepoints to be compiled
   //.js is the wrapper around the .cc compiled output.
   this.finaliseProbes = function () {
+    
+    exec('rm -rf ' + outputLocation + '/nftrace-output');
     var headerTracepoints = [];
     var nanTracepoints = [];
 
@@ -160,7 +161,7 @@ function NftraceGen(providerName, outputLoc) {
         }
       });
       headerTracepoint += "\n\t),\n\tTP_FIELDS(";
-      nanTracepoint += "\n\t" + nanCallTracepointSignature + ");\n\nNanReturnUndefined();\n}\n";
+      nanTracepoint += "\n\t" + nanCallTracepointSignature + ");\n\n\tNanReturnUndefined();\n}\n";
 
       nanTracepoints.push(nanTracepoint);
 
