@@ -4,16 +4,16 @@ var path = require('path');
 function NftraceGen(providerName, outputLoc) {
   var exec = require('child_process').exec;
   var provider = "nearform"
-  var outputLocation = path.normalize(path.dirname(process.argv[1]) + "/.");
+  var outputLocation = path.normalize(path.dirname(process.argv[1]) + "/");
   var probes = [];
   var args = {};
   var fields = {};
   
-  if (!providerName === 'undefined') {
+  if (providerName !== 'undefined') {
     provider = provider;
   }
-  if (!outputLoc === 'undefined') {
-    outputLocation = path.normalize(path.dirname(process.argv[1]) + outputLoc);
+  if (outputLoc !== 'undefined') {
+    outputLocation = path.normalize(path.dirname(process.argv[1]) + "/" + outputLoc);
   }
 
   this.setProvider = function (name) {
@@ -21,8 +21,7 @@ function NftraceGen(providerName, outputLoc) {
   };
 
   this.setOutputLocation = function (name) {
-    path.normalize(path.dirname(process.argv[1]) + name);
-    outputLocation = name;
+    outputLocation = path.normalize(path.dirname(process.argv[1]) + name);
   };
 
 
@@ -33,6 +32,9 @@ function NftraceGen(providerName, outputLoc) {
   };
 
   var generateOutputDir = function () {
+    if(!fs.existsSync(outputLocation)){
+      fs.mkdirSync(outputLocation);
+    }
     fs.mkdirSync(outputLocation + "/nftrace-output");
     fs.mkdirSync(outputLocation + "/nftrace-output/src");
     fs.mkdirSync(outputLocation + "/nftrace-output/lib");
