@@ -2,9 +2,9 @@ var fs = require('fs');
 var path = require('path');
 
 function NftraceGen(providerName, outputLoc) {
-  var exec = require('child_process').exec;
-  var provider = "nearform"
-  var outputLocation = path.normalize(path.dirname(process.argv[1]) + "/");
+  var exec = require('sync-exec');
+  var provider = "nearForm"
+  var outputLocation = path.normalize(process.cwd() + "/");
   var probes = [];
   var args = {};
   var fields = {};
@@ -13,7 +13,7 @@ function NftraceGen(providerName, outputLoc) {
     provider = provider;
   }
   if (outputLoc !== 'undefined') {
-    outputLocation = path.normalize(path.dirname(process.argv[1]) + "/" + outputLoc);
+    outputLocation = path.normalize(process.cwd() +  "/" + outputLoc);
   }
 
   this.setProvider = function (name) {
@@ -21,7 +21,7 @@ function NftraceGen(providerName, outputLoc) {
   };
 
   this.setOutputLocation = function (name) {
-    outputLocation = path.normalize(path.dirname(process.argv[1]) + name);
+    outputLocation = path.normalize(process.cwd() + "/" +  name);
   };
 
 
@@ -116,11 +116,10 @@ function NftraceGen(providerName, outputLoc) {
   };
 
   var compileGeneratedFiles = function () {
-    exec('cd ' + outputLocation + '/nftrace-output && npm install && cd ..' , function (error, stdout, stderr) {
-      console.log(stdout);
-      console.error(stderr);
-      console.log("finished!");
-    });
+    console.log(outputLocation + '/nftrace-output/');
+    
+    exec('cd ' + outputLocation + '/nftrace-output && npm install && cd -' , 10000);
+    console.log('done!');
   };
 
   //finaliseProbes must create 4 files, 
@@ -129,8 +128,9 @@ function NftraceGen(providerName, outputLoc) {
   //.h is the tracepoints to be compiled
   //.js is the wrapper around the .cc compiled output.
   this.finaliseProbes = function () {
+    var rimraf = require('rimraf')
+    rimraf.sync(outputLocation + '/nftrace-output/');
     
-    exec('rm -rf ' + outputLocation + '/nftrace-output');
     var headerTracepoints = [];
     var nanTracepoints = [];
 

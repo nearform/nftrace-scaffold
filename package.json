@@ -5,5 +5,9 @@
   "main": "./index.js",
   "private": "true",
   "licence": "MIT",
-  "bin": "./index.js"
+  "bin": "./index.js",
+  "dependencies": {
+  	 "rimraf" : "*",
+  	 "sync-exec": "*"
+  }
 }
